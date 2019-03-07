@@ -36,50 +36,73 @@ public class Main {
         printDottedWithImage(cs, document, 10, 650, 400);
         printDottedPattern(cs, 10, 600, 400, 15);
         printImage(cs, document, 10, 500, 200, 15);
-        printDottedWithRadialShading(cs);
+        printDottedWithRadialShading(cs, 10, 550, 400, 15);
 
         cs.close();
         File file = new File("1.pdf");
         document.save(file);
+        document.close();
     }
 
-    private static void printDottedWithRadialShading(PDPageContentStream contentStream) throws IOException {
+    private static void printDottedWithRadialShading(PDPageContentStream contentStream, float xStart, float yStart, float width, float height) throws IOException {
 
-        COSDictionary fdict = new COSDictionary();
-        fdict.setInt(COSName.FUNCTION_TYPE, 2);
+        COSDictionary dictionary = new COSDictionary();
+        dictionary.setInt(COSName.FUNCTION_TYPE, 2);
+
         COSArray domain = new COSArray();
         domain.add(COSInteger.get(0));
         domain.add(COSInteger.get(1));
-        COSArray c0 = new COSArray();
-        c0.add(COSFloat.get("0"));
-        c0.add(COSFloat.get("0"));
-        c0.add(COSFloat.get("0"));
-        COSArray c1 = new COSArray();
-        c1.add(COSFloat.get("0"));
-        c1.add(COSFloat.get("0"));
-        c1.add(COSFloat.get("0"));
-        fdict.setItem(COSName.DOMAIN, domain);
-        fdict.setItem(COSName.C0, c0);
-        fdict.setItem(COSName.C1, c1);
-        fdict.setInt(COSName.N, 1);
-        PDFunctionType2 func = new PDFunctionType2(fdict);
+        dictionary.setItem(COSName.DOMAIN, domain);
 
-        PDShadingType3 radialShading = new PDShadingType3(new COSDictionary());
-        radialShading.setColorSpace(PDDeviceRGB.INSTANCE);
-        radialShading.setShadingType(PDShading.SHADING_TYPE3);
+        COSArray colorCenter = new COSArray();
+        colorCenter.add(COSFloat.get("1"));
+        colorCenter.add(COSFloat.get("1"));
+        colorCenter.add(COSFloat.get("1"));
+        dictionary.setItem(COSName.C0, colorCenter);
 
-        COSArray coords2 = new COSArray();
-        coords2.add(COSInteger.get(700));
-        coords2.add(COSInteger.get(1));
-        coords2.add(COSInteger.get(1)); // radius1
-        coords2.add(COSInteger.get(2));
-        coords2.add(COSInteger.get(2));
-        coords2.add(COSInteger.get(2)); // radius2
+        COSArray colorEdge = new COSArray();
+        colorEdge.add(COSFloat.get("0"));
+        colorEdge.add(COSFloat.get("0"));
+        colorEdge.add(COSFloat.get("0"));
+        dictionary.setItem(COSName.C1, colorEdge);
 
-        radialShading.setCoords(coords2);
-        radialShading.setFunction(func);
+        dictionary.setInt(COSName.N, 1);
+        PDFunctionType2 function = new PDFunctionType2(dictionary);
 
-        contentStream.shadingFill(radialShading);
+        float widthBetweenDots = 2.5F;
+        float spaceBetweenLines = 1.3F;
+
+        int lines = (int) (height / spaceBetweenLines);
+
+        float yPosition = yStart;
+        for (int i = 0; i < lines; i++) {
+
+            float xPosition = i % 2 == 0 ? xStart : xStart + 1.5F;
+            System.out.println(i + "; xPosition: " + xPosition);
+            for (; xPosition < xStart + width; xPosition += widthBetweenDots) {
+
+                System.out.println(" " + xPosition);
+                PDShadingType3 radialShading = new PDShadingType3(new COSDictionary());
+                radialShading.setColorSpace(PDDeviceRGB.INSTANCE);
+                radialShading.setShadingType(PDShading.SHADING_TYPE3);
+                radialShading.setFunction(function);
+
+                COSArray coords = new COSArray();
+                //center of dot with radius
+                coords.add(COSFloat.get(String.valueOf(xPosition)));
+                coords.add(COSFloat.get(String.valueOf(yPosition)));
+                coords.add(COSFloat.get("0.33")); // radius1
+                //edge of dot without radius
+                coords.add(COSFloat.get(String.valueOf(xPosition)));
+                coords.add(COSFloat.get(String.valueOf(yPosition)));
+                coords.add(COSInteger.get(0)); // radius2
+
+                radialShading.setCoords(coords);
+                contentStream.shadingFill(radialShading);
+            }
+
+            yPosition += spaceBetweenLines;
+        }
     }
 
     private static void printDottedWithImage(PDPageContentStream contentStream, PDDocument doc, float xStart, float yStart, float width) throws IOException {
