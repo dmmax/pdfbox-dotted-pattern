@@ -19,6 +19,10 @@ public class Main {
 
         PDPageContentStream cs = new PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true);
 
+        LineUtils.createDottedPatternUsingTillingPattern(page, cs, XYPoint.from(10, 650), 550, 17);
+
+        LineUtils.createDottedPattern(cs, XYPoint.from(10, 450), 550, 21);
+
         float leftMargin = 10;
         float yPosition = 600;
         float width = 550;
