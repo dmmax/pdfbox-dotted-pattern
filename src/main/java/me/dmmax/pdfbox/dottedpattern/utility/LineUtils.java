@@ -27,6 +27,7 @@ import org.apache.pdfbox.util.Charsets;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -63,28 +64,24 @@ public class LineUtils {
     }
 
     public static void createDottedPattern(PDPageContentStream contentStream, XYPoint topLeftPoint, float width, int lines) throws IOException {
-        createDottedPattern(contentStream, topLeftPoint, width, lines, false);
+        createDottedPattern(contentStream, topLeftPoint, width, lines, 1);
     }
 
-    public static void createDottedPatternInvertStartLine(PDPageContentStream contentStream, XYPoint topLeftPoint, float width, int lines) throws IOException {
-        createDottedPattern(contentStream, topLeftPoint, width, lines, true);
-    }
 
-    private static void createDottedPattern(PDPageContentStream contentStream, XYPoint topLeftPoint, float width, int lines, boolean invertStartLine) throws IOException {
+    private static void createDottedPattern(PDPageContentStream contentStream, XYPoint topLeftPoint, float width, int lines, float increment) throws IOException {
 
-        contentStream.setLineWidth(0.3F);
+        contentStream.setLineWidth(0.3F * increment);
         contentStream.setLineCapStyle(0);
 
         contentStream.setStrokingColor(0, 0, 0);
-        float lineSpaceDottedPattern = 1.2F;
+        float lineSpaceDottedPattern = 1.2F * increment;
 
-        float firstPhase = invertStartLine ? 0 : 1.2F;
-        float secondPhase = invertStartLine ? 1.2F : 0;
+        float firstPhase = 1.2F * increment;
+        float secondPhase = 0;
 
         for (int i = 0; i < lines; i++) {
-
-            contentStream.setMiterLimit(1);
-            contentStream.setLineDashPattern(new float[]{0.3F, 2.1F}, i % 2 == 0 ? firstPhase : secondPhase);
+            
+            contentStream.setLineDashPattern(new float[]{0.3F * increment, 2.1F * increment}, i % 2 == 0 ? firstPhase : secondPhase);
             contentStream.moveTo(topLeftPoint.getX(), topLeftPoint.getY());
             contentStream.lineTo(topLeftPoint.getX() + width, topLeftPoint.getY());
             contentStream.stroke();
@@ -168,7 +165,7 @@ public class LineUtils {
                 //center of dot with radius
                 coords.add(COSFloat.get(String.valueOf(xPosition)));
                 coords.add(COSFloat.get(String.valueOf(yPosition)));
-                coords.add(COSFloat.get("0.33")); // radius1
+                coords.add(COSFloat.get("3.34")); // radius1
                 //edge of dot without radius
                 coords.add(COSFloat.get(String.valueOf(xPosition)));
                 coords.add(COSFloat.get(String.valueOf(yPosition)));
@@ -225,17 +222,20 @@ public class LineUtils {
 
     private static BufferedImage generateDotPatternImageBySize(SquareSize sizeOfDotPattern, int lines) throws IOException {
 
+        float increment = 3.34F;
         PDDocument imageDocument = new PDDocument();
-        PDPage page = new PDPage(new PDRectangle(sizeOfDotPattern.width(), sizeOfDotPattern.height()));
+        PDPage page = new PDPage(new PDRectangle(sizeOfDotPattern.width() * increment, sizeOfDotPattern.height() * increment));
         imageDocument.addPage(page);
 
         PDPageContentStream contentStream = new PDPageContentStream(imageDocument, page, PDPageContentStream.AppendMode.APPEND, true, true);
-        createDottedPattern(contentStream, XYPoint.from(0, lines * LINE_SPACE_BETWEEN_DOT_PATTERN_LINE - 0.6F), sizeOfDotPattern.width(), lines);
+        createDottedPattern(contentStream, XYPoint.from(0.9F, lines * LINE_SPACE_BETWEEN_DOT_PATTERN_LINE * increment - 0.6F), sizeOfDotPattern.width() * increment, lines, increment);
         contentStream.close();
 
         PDFRenderer pdfRenderer = new PDFRenderer(imageDocument);
-        BufferedImage image = pdfRenderer.renderImageWithDPI(0, 300, ImageType.BINARY);
 
+        BufferedImage image = pdfRenderer.renderImageWithDPI(0, 72 * 9, ImageType.BINARY);
+
+        imageDocument.save(new File("123.pdf"));
         imageDocument.close();
 
         return image;

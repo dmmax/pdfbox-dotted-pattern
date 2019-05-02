@@ -28,9 +28,19 @@ public class Main {
                 .document(document)
                 .build();
 
-        LineUtils.createDottedPattern(cs, XYPoint.from(10, 700), 575, 17);
+        //LineUtils.createDottedPattern(cs, XYPoint.from(10, 700), 575, 17);
 
-        LineUtils.createDottedPatternUsingImageOfFullLine(reportParameters, cs, XYPoint.from(10, 650), 575, 17);
+        float yPosition = 700;
+        LineUtils.createDottedPatternUsingImageOfFullLine(reportParameters, cs, XYPoint.from(10, yPosition - 17 * 1.2F - 0.6F), 575, 17);
+
+        yPosition -= 40;
+        LineUtils.createDottedPatternUsingImageOfFullLine(reportParameters, cs, XYPoint.from(10, yPosition - 17 * 1.2F - 0.6F), 575, 17);
+
+        yPosition -= 40;
+        LineUtils.createDottedPatternUsingImageOfFullLine(reportParameters, cs, XYPoint.from(10, yPosition - 17 * 1.2F - 0.6F), 575, 17);
+
+        yPosition -= 40;
+        LineUtils.createDottedPatternUsingImageOfFullLine(reportParameters, cs, XYPoint.from(10, yPosition - 17 * 1.2F - 0.6F), 575, 17);
 
         cs.close();
         File file = new File("print.pdf");
