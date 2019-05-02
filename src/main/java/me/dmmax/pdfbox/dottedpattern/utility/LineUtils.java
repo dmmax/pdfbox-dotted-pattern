@@ -1,5 +1,6 @@
-package me.dmmax.pdfbox.dottedpattern;
+package me.dmmax.pdfbox.dottedpattern.utility;
 
+import lombok.experimental.UtilityClass;
 import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSFloat;
@@ -19,6 +20,8 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.graphics.pattern.PDTilingPattern;
 import org.apache.pdfbox.pdmodel.graphics.shading.PDShading;
 import org.apache.pdfbox.pdmodel.graphics.shading.PDShadingType3;
+import org.apache.pdfbox.rendering.ImageType;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.util.Charsets;
 
 import javax.imageio.ImageIO;
@@ -28,7 +31,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+@UtilityClass
 public class LineUtils {
+
+    private static final float LINE_SPACE_BETWEEN_DOT_PATTERN_LINE = 1.2F;
 
     public static void printSolidLine(PDPageContentStream cs, float lineWidth, XYPoint startPoint, XYPoint endPoint) throws IOException {
 
@@ -54,7 +60,6 @@ public class LineUtils {
             contentStream.stroke();
             startPoint = startPoint.minusY(lineSpaceDashedPattern);
         }
-        contentStream.setStrokingColor(0, 0, 0);
     }
 
     public static void createDottedPattern(PDPageContentStream contentStream, XYPoint topLeftPoint, float width, int lines) throws IOException {
@@ -69,8 +74,8 @@ public class LineUtils {
 
         contentStream.setLineWidth(0.3F);
         contentStream.setLineCapStyle(0);
-        contentStream.setStrokingColor(0F);
-        //contentStream.setStrokingColor(0, 0, 0);
+
+        contentStream.setStrokingColor(0, 0, 0);
         float lineSpaceDottedPattern = 1.2F;
 
         float firstPhase = invertStartLine ? 0 : 1.2F;
@@ -85,28 +90,31 @@ public class LineUtils {
             contentStream.stroke();
             topLeftPoint = topLeftPoint.minusY(lineSpaceDottedPattern);
         }
-        contentStream.setStrokingColor(0, 0, 0);
     }
 
     public static void createDottedPatternUsingTillingPattern(PDPage page, PDPageContentStream cs, XYPoint leftPoint, float width, int lines) throws IOException {
 
-        PDTilingPattern tilingPattern1 = new PDTilingPattern();
-        tilingPattern1.setBBox(new PDRectangle(0, 0, 2.4F, 2.4F));
-        tilingPattern1.setPaintType(PDTilingPattern.PAINT_UNCOLORED);
-        tilingPattern1.setTilingType(PDTilingPattern.TILING_NO_DISTORTION);
-        tilingPattern1.setXStep(2.4F);
-        tilingPattern1.setYStep(2.4F);
+        PDTilingPattern tilingPattern = new PDTilingPattern();
+        tilingPattern.setBBox(new PDRectangle(0, 0, 2.4F, 2.4F));
+        tilingPattern.setPaintType(PDTilingPattern.PAINT_UNCOLORED);
+        tilingPattern.setTilingType(PDTilingPattern.TILING_NO_DISTORTION);
+        tilingPattern.setXStep(2.4F);
+        tilingPattern.setYStep(2.4F);
 
-        COSName patternName1 = page.getResources().add(tilingPattern1);
-        OutputStream os1 = tilingPattern1.getContentStream().createOutputStream();
-        os1.write(("0.3 w 1.2 0.3 m 1.5 0.3 l s " +
-                "0.3 w 0 1.5 m 0.3 1.5 l s").getBytes(Charsets.US_ASCII));
-        os1.close();
+        COSName patternName = page.getResources().add(tilingPattern);
+        OutputStream os = tilingPattern.getContentStream().createOutputStream();
+
+        String s = lines % 2 == 1
+                ? "0.3 w 0 0.3 m 0.3 0.3 l s " + "0.3 w 1.2 1.5 m 1.5 1.5 l s"
+                : "0.3 w 1.2 0.3 m 1.5 0.3 l s " + "0.3 w 0 1.5 m 0.3 1.5 l s ";
+
+        os.write(s.getBytes(Charsets.US_ASCII));
+        os.close();
 
         PDColorSpace patternColorSpace = new PDPattern(null, PDDeviceRGB.INSTANCE);
         PDColor patterColor = new PDColor(
                 new float[]{0, 0, 0},
-                patternName1,
+                patternName,
                 patternColorSpace);
 
 
@@ -198,5 +206,38 @@ public class LineUtils {
             yPosition += spaceBetweenLines;
         }
 
+    }
+
+    public static void createDottedPatternUsingImageOfFullLine(ReportParameters reportParameters, PDPageContentStream contentStream, XYPoint leftDownPoint, float width, int lines) throws IOException {
+
+        SquareSize sizeOfDotPattern = SquareSize.from(width, lines * LINE_SPACE_BETWEEN_DOT_PATTERN_LINE);
+        BufferedImage image = reportParameters.getDotPatternBySize(sizeOfDotPattern);
+
+        if (image == null) {
+            image = generateDotPatternImageBySize(sizeOfDotPattern, lines);
+            reportParameters.addDotPatternImage(sizeOfDotPattern, image);
+        }
+
+        PDImageXObject imageXObject = LosslessFactory.createFromImage(reportParameters.document(), image);
+
+        contentStream.drawImage(imageXObject, leftDownPoint.getX(), leftDownPoint.getY(), width, lines * LINE_SPACE_BETWEEN_DOT_PATTERN_LINE);
+    }
+
+    private static BufferedImage generateDotPatternImageBySize(SquareSize sizeOfDotPattern, int lines) throws IOException {
+
+        PDDocument imageDocument = new PDDocument();
+        PDPage page = new PDPage(new PDRectangle(sizeOfDotPattern.width(), sizeOfDotPattern.height()));
+        imageDocument.addPage(page);
+
+        PDPageContentStream contentStream = new PDPageContentStream(imageDocument, page, PDPageContentStream.AppendMode.APPEND, true, true);
+        createDottedPattern(contentStream, XYPoint.from(0, lines * LINE_SPACE_BETWEEN_DOT_PATTERN_LINE - 0.6F), sizeOfDotPattern.width(), lines);
+        contentStream.close();
+
+        PDFRenderer pdfRenderer = new PDFRenderer(imageDocument);
+        BufferedImage image = pdfRenderer.renderImageWithDPI(0, 300, ImageType.BINARY);
+
+        imageDocument.close();
+
+        return image;
     }
 }

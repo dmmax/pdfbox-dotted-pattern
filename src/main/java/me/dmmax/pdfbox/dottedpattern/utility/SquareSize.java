@@ -1,4 +1,6 @@
-package me.dmmax.pdfbox.dottedpattern;
+package me.dmmax.pdfbox.dottedpattern.utility;
+
+import java.util.Objects;
 
 public class SquareSize {
 
@@ -23,5 +25,19 @@ public class SquareSize {
 
     public float height() {
         return height;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SquareSize that = (SquareSize) o;
+        return Float.compare(that.width, width) == 0 &&
+                Float.compare(that.height, height) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(width, height);
     }
 }

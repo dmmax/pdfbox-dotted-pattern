@@ -1,4 +1,4 @@
-package me.dmmax.pdfbox.dottedpattern;
+package me.dmmax.pdfbox.dottedpattern.utility;
 
 public class XYPoint {
 

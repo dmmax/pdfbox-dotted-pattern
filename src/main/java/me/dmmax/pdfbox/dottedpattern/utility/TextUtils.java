@@ -1,4 +1,4 @@
-package me.dmmax.pdfbox.dottedpattern;
+package me.dmmax.pdfbox.dottedpattern.utility;
 
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
